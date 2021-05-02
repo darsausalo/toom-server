@@ -1,0 +1,162 @@
+const socket = require("socket.io");
+const UserModel = require("../models/User");
+const bcrypt = require("bcrypt");
+const {createJWTToken} = require("../utils");
+const {validationResult, Result, ValidationError} = require("express-validator");
+const mailer = require("../core/mailer");
+
+class UserController {
+    io;
+
+    constructor(io) {
+        this.io = io;
+    }
+
+    getById(req, res) {
+        const id = req.params.id;
+        UserModel.findById(id, (err, user) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json(err);
+            }
+            if (!user) {
+                return res.status(404).json({
+                    message: "User not found"
+                });
+            }
+            res.json(user);
+        });
+    }
+
+    getMe(req, res) {
+        const id = req.user && req.user._id;
+        UserModel.findById(id, (err, user) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json(err);
+            }
+            if (!user) {
+                return res.status(404).json({
+                    message: "User not found"
+                });
+            }
+            res.json(user);
+        });
+    }
+
+    create(req, res) {
+        const postData = {
+            email: req.body.email,
+            fullname: req.body.fullname,
+            password: req.body.password,
+        };
+
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            res.status(422).json({errors: errors.array()})
+        } else {
+            UserModel.findOne({email: postData.email}, (err, user) => {
+                if (user) {
+                    res.status(422).json({errors: ["Пользователь уже зарегестирован."]});
+                    return;
+                }
+                new UserModel(postData)
+                    .save()
+                    .then((user) => {
+                        console.log(user);
+                        res.json(user);
+                        mailer.sendMail(
+                            {
+                                from: process.env.ADMIN_EMAIL,
+                                to: postData.email,
+                                subject: "Подтверждение регистрации в TOOM",
+                                html: `Для того, чтобы подтвердить свою почту, <a href="${req.protocol}://${req.hostname}${process.env.PORT !== 80 ? ":" + process.env.PORT : ""}/user/verify?hash=${encodeURIComponent(user.confirmHash)}">перейдите по этой ссылке</a>`
+                            },
+                            function (err, info) {
+                                if (err) {
+                                    console.log(err);
+                                } else {
+                                    console.log(info);
+                                }
+                            }
+                        );
+                    })
+                    .catch((reason => {
+                        console.error(reason);
+                        res.status(500).json({
+                            message: reason
+                        });
+                    }));
+            });
+        }
+    }
+
+    verify(req, res) {
+        console.log("TODO VERIFY");
+        const hash = req.query.hash;
+
+        if (!hash) {
+            res.status(422).json({errors: "Invalid hash"});
+        } else {
+            UserModel.findOne({confirmHash: hash}, (err, user) => {
+                if (err) {
+                    return res.status(500).json(err);
+                }
+                if (!user) {
+                    return res.status(404).json({
+                        message: err
+                    });
+                }
+
+                user.confirmed = true;
+                user.save((err) => {
+                    if (err) {
+                        return res.status(500).json(err);
+                    }
+
+                    res.json({
+                        message: "Аккаунт успешно подтверждён!"
+                    });
+                });
+            });
+        }
+    }
+
+    login(req, res) {
+        const postData = {
+            email: req.body.email,
+            password: req.body.password,
+        }
+
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            req.status(422).json({errors: errors.array()});
+        } else {
+            UserModel.findOne({email: postData.email}, (err, user) => {
+                if (err) {
+                    return res.status(500).json(err);
+                }
+                if (!user) {
+                    return res.status(404).json({
+                        message: "User not found",
+                    })
+                }
+
+                if (user.confirmed && bcrypt.compareSync(postData.password, user.password)) {
+                    const token = createJWTToken(user);
+                    res.json({
+                        token,
+                    });
+                } else {
+                    res.status(403).json({
+                        message: "Incorrect password or email"
+                    })
+                }
+            });
+        }
+    }
+}
+
+module.exports = UserController;
