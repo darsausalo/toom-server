@@ -1,8 +1,8 @@
-const socket = require("socket.io");
 const UserModel = require("../models/User");
+const MeetingModel = require("../models/Meeting");
 const bcrypt = require("bcrypt");
 const {createJWTToken} = require("../utils");
-const {validationResult, Result, ValidationError} = require("express-validator");
+const {validationResult} = require("express-validator");
 const mailer = require("../core/mailer");
 
 class UserController {
@@ -40,7 +40,14 @@ class UserController {
                     message: "User not found"
                 });
             }
-            res.json(user);
+
+            MeetingModel.find({owner: id}, (err, meetings) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json(err);
+                }
+                res.json({user, meetings});
+            });
         });
     }
 
@@ -64,7 +71,6 @@ class UserController {
                 new UserModel(postData)
                     .save()
                     .then((user) => {
-                        console.log(user);
                         res.json(user);
                         mailer.sendMail(
                             {
@@ -93,7 +99,6 @@ class UserController {
     }
 
     verify(req, res) {
-        console.log("TODO VERIFY");
         const hash = req.query.hash;
 
         if (!hash) {

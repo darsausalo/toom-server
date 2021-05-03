@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const {Schema, Document} = mongoose;
+const {Schema} = mongoose;
 const {isEmail} = require("validator");
 const {generatePasswordHash} = require("../utils");
 const differenceInMinutes = require("date-fns/differenceInMinutes");
