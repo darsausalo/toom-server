@@ -17,6 +17,7 @@ const createRoutes = (app, io) => {
     app.use(cors({
         origin: "*",
         methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization", "token"],
         preflightContinue: true,
         optionsSuccessStatus: 204
     }));
