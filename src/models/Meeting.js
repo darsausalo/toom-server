@@ -16,6 +16,9 @@ const MeetingSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "User",
     }],
+    useVideo: {
+        type: Boolean,
+    },
 }, {
     timestamps: true
 });

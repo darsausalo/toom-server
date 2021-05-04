@@ -14,13 +14,15 @@ class MeetingController {
 
         const postData = {
             subject: req.body.subject,
+            useVideo: req.body.useVideo,
         };
+        console.log("postData:", postData);
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             res.status(422).json({errors: errors.array()});
         } else {
-            MeetingModel.findOne({subject: postData.subject}, (err, meeting) => {
+            MeetingModel.findOne(postData, (err, meeting) => {
                 if (err) {
                     console.error(err);
                     return res.status(500).json(err);

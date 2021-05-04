@@ -9,7 +9,7 @@ module.exports = (server) => {
         }
     });
 
-    const populateParticipants = (socket, meetingId, emitMessages = false) => {
+    const populateParticipants = (socket, meetingId, userId, emitMessages = false) => {
         ParticipantModel.find({meeting: meetingId})
             .populate(["user"])
             .exec((err, participants) => {
@@ -18,7 +18,6 @@ module.exports = (server) => {
                     return;
                 }
 
-                socket.to(meetingId).emit("MEETING:SET_PARTICIPANTS", participants);
                 socket.emit("MEETING:SET_PARTICIPANTS", participants);
             });
 
@@ -31,7 +30,6 @@ module.exports = (server) => {
                         return;
                     }
 
-                    socket.to(meetingId).emit("MEETING:SET_MESSAGES", messages);
                     socket.emit("MEETING:SET_MESSAGES", messages);
                 });
         }
@@ -46,22 +44,22 @@ module.exports = (server) => {
             currentMeetingId = meetingId;
             currentUserId = userId;
 
-            ParticipantModel.findOne({meeting: meetingId, user: userId}, (err, participant) => {
+            const filter = {meeting: meetingId, user: userId};
+            const update = {meeting: meetingId, user: userId, socketId: socket.id};
+            ParticipantModel.findOneAndUpdate(filter, update, {new: true, upsert: true}, (err, participant) => {
                 if (err) {
                     console.error(err);
                     return;
                 }
-                if (!participant) {
-                    new ParticipantModel({meeting: meetingId, user: userId, socketId: socket.id})
-                        .save()
-                        .then(() => {
-                            populateParticipants(socket, meetingId, true);
-                        }).catch(err => {
-                            console.error(err);
-                        });
-                } else {
-                    populateParticipants(socket, meetingId, true);
-                }
+                populateParticipants(socket, meetingId, userId, true);
+
+                ParticipantModel.populate(participant, {path: "user"}, (err, participant) => {
+                    if (err) {
+                        console.error(err);
+                        return;
+                    }
+                    socket.to(meetingId).emit("MEETING:ADD_PARTICIPANT", participant);
+                })
             });
 
             console.log("JOIN TO MEETING: ", meetingId, userId);
@@ -72,31 +70,54 @@ module.exports = (server) => {
                 .save()
                 .then((message) => {
                     MessageModel.populate(message, {path: "user"}, (err, message) => {
-                       if (err) {
-                           console.error(err);
-                           return;
-                       }
+                        if (err) {
+                            console.error(err);
+                            return;
+                        }
                         console.log("NEW_MESSAGE:", message);
                         socket.to(meetingId).emit("MEETING:ADD_MESSAGE", message);
                         socket.emit("MEETING:ADD_MESSAGE", message);
                     });
                 }).catch(err => {
-                    console.error(err);
-                });
+                console.error(err);
+            });
         });
 
         socket.on("disconnect", () => {
-            if (currentMeetingId && currentUserId) {
-                ParticipantModel.deleteMany({socketId: socket.id}, (err) => {
-                    if (err) {
-                        console.error(err);
-                        return;
-                    }
+            ParticipantModel.findOneAndDelete({socketId: socket.id}, (err, participant) => {
+                if (err) {
+                    console.log(err);
+                    return;
+                }
+                if (participant) {
+                    socket.broadcast.emit("MEETING:REMOVE_PARTICIPANT", participant);
+                }
+            });
 
-                    populateParticipants(socket, currentMeetingId);
-                });
-            }
-            console.log("user disconnected", socket.id, currentUserId);
+            console.log("user disconnected", socket.id);
+        });
+
+        socket.on("VIDEO:JOIN", payload => {
+            console.log("payload:", payload);
+            ParticipantModel.find({meeting: payload.meetingId, user: {"$ne": payload.userId}}, (err, participants) => {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                console.log("VIDEO:SET_PEERS:", participants.length);
+                socket.emit("VIDEO:SET_PEERS", participants.filter(p => p.user !== payload.userId));
+            });
+        });
+
+        socket.on("VIDEO:SENDING_SIGNAL", payload => {
+            socket.to(payload.userToSignal).emit("VIDEO:STARTED", {signal: payload.signal, callerID: payload.callerID});
+        });
+
+        socket.on("VIDEO:RETURNING_SIGNAL", payload => {
+            socket.to(payload.callerID).emit("VIDEO:RECEIVING_RETURNED_SIGNAL", {
+                signal: payload.signal,
+                id: socket.id
+            });
         });
 
         console.log('user connected', socket.id);
