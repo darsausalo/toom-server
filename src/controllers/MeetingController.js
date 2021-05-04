@@ -32,18 +32,12 @@ class MeetingController {
                     .save()
                     .then((meeting) => {
                         res.json(meeting);
-                    })
-                    .catch(err => {
+                    }).catch(err => {
                         console.error(err);
                         res.status(500).json({
                             message: err
                         });
                     });
-            }).catch(err => {
-                console.error(err);
-                res.status(500).json({
-                    message: err
-                });
             });
         }
     }
@@ -60,15 +54,12 @@ class MeetingController {
                 .populate(["user"])
                 .exec((err, participants) => {
                     if (err) {
-                        console.log(err);
+                        console.error(err);
                         return res.status(500).json(err);
                     }
 
                     res.json({meeting, participants});
                 });
-        }).catch(err => {
-            console.error(err);
-            res.send(500).json(err);
         });
     }
 }

@@ -87,8 +87,7 @@ class UserController {
                                 }
                             }
                         );
-                    })
-                    .catch((reason => {
+                    }).catch((reason => {
                         console.error(reason);
                         res.status(500).json({
                             message: reason

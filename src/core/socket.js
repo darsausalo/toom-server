@@ -56,15 +56,12 @@ module.exports = (server) => {
                         .save()
                         .then(() => {
                             populateParticipants(socket, meetingId, true);
-                        })
-                        .catch(err => {
+                        }).catch(err => {
                             console.error(err);
                         });
                 } else {
                     populateParticipants(socket, meetingId, true);
                 }
-            }).catch(err => {
-                console.error(err);
             });
 
             console.log("JOIN TO MEETING: ", meetingId, userId);
@@ -83,8 +80,7 @@ module.exports = (server) => {
                         socket.to(meetingId).emit("MEETING:ADD_MESSAGE", message);
                         socket.emit("MEETING:ADD_MESSAGE", message);
                     });
-                })
-                .catch(err => {
+                }).catch(err => {
                     console.error(err);
                 });
         });
@@ -98,8 +94,6 @@ module.exports = (server) => {
                     }
 
                     populateParticipants(socket, currentMeetingId);
-                }).catch(err => {
-                    console.error(err);
                 });
             }
             console.log("user disconnected", socket.id, currentUserId);
