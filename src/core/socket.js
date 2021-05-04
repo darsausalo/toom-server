@@ -35,6 +35,18 @@ module.exports = (server) => {
         }
     };
 
+    const exitMeeting = (socket) => {
+        ParticipantModel.findOneAndDelete({socketId: socket.id}, (err, participant) => {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            if (participant) {
+                socket.broadcast.emit("MEETING:REMOVE_PARTICIPANT", participant);
+            }
+        });
+    };
+
     io.on("connection", function (socket) {
         let currentMeetingId = null;
         let currentUserId = null;
@@ -83,16 +95,14 @@ module.exports = (server) => {
             });
         });
 
+        socket.on("MEETING:EXIT", () => {
+            exitMeeting(socket);
+
+            console.log("user exit meeting", socket.id);
+        });
+
         socket.on("disconnect", () => {
-            ParticipantModel.findOneAndDelete({socketId: socket.id}, (err, participant) => {
-                if (err) {
-                    console.log(err);
-                    return;
-                }
-                if (participant) {
-                    socket.broadcast.emit("MEETING:REMOVE_PARTICIPANT", participant);
-                }
-            });
+            exitMeeting(socket);
 
             console.log("user disconnected", socket.id);
         });
