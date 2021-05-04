@@ -16,14 +16,14 @@ const createRoutes = (app, io) => {
     app.use(logger("dev"));
     app.use(cors({
         origin: "*",
-        methods: ["GET","HEAD","PUT","PATCH","POST","DELETE"],
+        methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
         preflightContinue: true,
         optionsSuccessStatus: 204
     }));
     app.use(bodyParser.json());
     app.use(checkAuth);
 
-    app.get("/", (_, res) =>{
+    app.get("/", (_, res) => {
         res.send("Toom server");
     });
 

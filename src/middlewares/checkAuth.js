@@ -17,13 +17,16 @@ module.exports = (req, res, next) => {
                     req.user = user.data._doc;
                     next();
                 } else {
+                    console.error("Invalid auth token provided:", token);
                     res.status(403).json({message: "Invalid auth token provided."});
                 }
             })
             .catch(() => {
+                console.error("Invalid auth token provided:", token);
                 res.status(403).json({message: "Invalid auth token provided."});
             });
     } else {
+        console.error("JWT token not found");
         res.status(403).json({message: "Not authorized."});
     }
 };
