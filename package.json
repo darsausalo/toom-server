@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Toom - team video conference application",
   "dependencies": {
+    "bcrypt": "^5.0.1",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "date-fns": "^2.21.1",
@@ -21,8 +22,5 @@
   },
   "scripts": {
     "start": "nodemon src/index.js"
-  },
-  "devDependencies": {
-    "bcrypt": "^5.0.1"
   }
 }
