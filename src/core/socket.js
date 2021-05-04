@@ -5,7 +5,9 @@ const MessageModel = require("../models/Message");
 module.exports = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: "*"
+            origin: "*",
+            methods: ["GET","HEAD","PUT","PATCH","POST","DELETE"],
+            credentials: false,
         }
     });
 
