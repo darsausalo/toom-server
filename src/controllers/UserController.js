@@ -52,6 +52,8 @@ class UserController {
     }
 
     create(req, res) {
+        const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/;
+
         const postData = {
             email: req.body.email,
             fullname: req.body.fullname,
@@ -61,7 +63,9 @@ class UserController {
         const errors = validationResult(req);
 
         if (!errors.isEmpty()) {
-            res.status(422).json({errors: errors.array()})
+            res.status(422).json({errors: errors.array()});
+        } else if (!passwordRegex.test(postData.password)) {
+            res.status(422).json({errors: ["Пароль должен сожержать как минимум одну цифру и букву в верхнем и нижнем регистре и быть не меньше 8 символов."]});
         } else {
             UserModel.findOne({email: postData.email}, (err, user) => {
                 if (user) {
