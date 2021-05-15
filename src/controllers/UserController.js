@@ -76,12 +76,15 @@ class UserController {
                     .save()
                     .then((user) => {
                         res.json(user);
+                        const production  = 'https://my-toom-server.herokuapp.com/';
+                        const development = 'http://localhost:3001/';
+                        const url = (process.env.NODE_ENV ? production : development);
                         mailer.sendMail(
                             {
                                 from: process.env.ADMIN_EMAIL,
                                 to: postData.email,
                                 subject: "Подтверждение регистрации в TOOM",
-                                html: `Для того, чтобы подтвердить свою почту, <a href="${req.protocol}://${req.hostname}${process.env.PORT !== 80 ? ":" + process.env.PORT : ""}/user/verify?hash=${encodeURIComponent(user.confirmHash)}">перейдите по этой ссылке</a>`
+                                html: `Для того, чтобы подтвердить свою почту, <a href="${url}user/verify?hash=${encodeURIComponent(user.confirmHash)}">перейдите по этой ссылке</a>`
                             },
                             function (err, info) {
                                 if (err) {
